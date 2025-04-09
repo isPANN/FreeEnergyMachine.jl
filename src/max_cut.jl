@@ -26,15 +26,34 @@ function energy_term_grad(problem::MaxCut, p)
 end
 
 function energy_term(problem::MaxCut, p)
-    # Compute the energy term of the MaxCut problem
-    # U_mf = - sum 2 * W_ij * (1 - p_i) * p_i
-    # p: (batch_size, node_num)
-    return -2 .* sum(((p .* (1 .- p)) * (problem.coupling / 2) ), dims=2)[:]
+    W = problem.coupling  # (N, N)
+    # term1 = sum over i,j of W_ij * (P_i + P_j) = 2 * sum(W * p) over batch
+    term1 = 2 .* sum(p * W; dims=2)  # shape: (batch_size, 1)
+
+    # term2 = 2 * sum(W_ij * P_i * P_j)
+    # (p * W) gives (batch_size, N)
+    # then element-wise multiply with p and sum over nodes
+    term2 = 2 .* sum(p .* (p * W); dims=2)  # shape: (batch_size, 1)
+
+    U = -(term1 .- term2)  # shape: (batch_size, 1)
+    return vec(U)  # return shape: (batch_size,)
 end
 
 function infer(problem::MaxCut, p)
-    config = round.(p) 
-    return sum(((p .* (1 .- p)) * (problem.coupling) ), dims=2)[:]
+    # calculate the real cut value of each configuration
+    config = round.(p)
+    batchsize, N = size(p)
+    E = zeros(problem.dtype, batchsize)
+    # E = sum_((i,j) in cal(E)) W_(i,j) (1-delta(p_i, p_j))
+    for i in 1:N, j in i+1:N
+        Wij = problem.coupling[i, j]
+        if Wij ≠ 0
+            for b in 1:batchsize
+                E[b] += Wij * (config[b, i] ≠ config[b, j])
+            end
+        end
+    end
+    return E
 end
 
 function load_matrix(path::String; zero_based::Bool = false, symmetric::Bool = true, dtype::Type = Float32)

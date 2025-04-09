@@ -14,8 +14,8 @@ struct Solver{P<:CombinatorialProblem, O<:OptimizerType, T<:AbstractFloat}
     dtype::Type{T}
 
     function Solver(
-        problem::P, 
-        num_trials::Int, 
+        problem::P,
+        num_trials::Int,
         num_steps::Int;
         betamin::Real = 0.01,
         betamax::Real = 0.5,
@@ -29,8 +29,7 @@ struct Solver{P<:CombinatorialProblem, O<:OptimizerType, T<:AbstractFloat}
     ) where {P<:CombinatorialProblem, A<:AnnealingStrategy, O<:OptimizerType}
 
         T = problem.dtype
-        betas = get_betas(annealing, num_steps, T(betamin), T(betamax))
-        @assert typeof(betas) == Vector{T} "betas should be a vector of type T"
+        betas = T.(get_betas(annealing, num_steps, T(betamin), T(betamax)))
 
         binary = is_binary(problem)
         if binary
@@ -61,14 +60,28 @@ function initialize(solver::Solver)
     return h
 end
 
+function free_energy(solver::Solver, h, step)
+    p = solver.binary ? sigmoid.(h) : softmax(h, dims=3)
+    # Calculate energy term (expectation value)
+    energy = energy_term(solver.problem, p)
+
+    # Calculate entropy term scaled by beta
+    entropy = entropy_term(solver.problem, p) ./ solver.betas[step]
+
+    # Free energy = energy - T*entropy (where T = 1/beta)
+    return sum(energy .- entropy)
+end
+
 function fem_iterate(solver::Solver)
+    # Initialize the solver with local fields.
     h = initialize(solver)
     optimizer = get_optimizer(solver.optimizer_type)
-    state = Flux.setup(optimizer, h) 
+    state = Flux.setup(optimizer, h)
 
     grad = solver.manual_grad ? similar(h) : nothing
 
     for step in 1:length(solver.betas)
+        # Calculate probabilities once per step
         if solver.binary
             p = sigmoid.(h)
         else
@@ -77,19 +90,14 @@ function fem_iterate(solver::Solver)
 
         if solver.manual_grad
             grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) ./ solver.betas[step]
-        # else
-        #     grad = Flux.gradient(() -> loss_fn(solver, h, step), h)[1]
+        else
+            # Use Zygote for automatic differentiation
+            grad = Zygote.gradient(h -> free_energy(solver, h, step), h)[1] 
         end
 
         Flux.update!(state, h, grad)
     end
 
+    # Return final probabilities
     return solver.binary ? sigmoid.(h) : softmax(h, dims=3)
 end
-
-
-# function solve(solver::Solver)
-#     marginal = iterate(solver)
-#     configs, results = solver.problem.inference_value(marginal)
-#     return configs, results
-# end
