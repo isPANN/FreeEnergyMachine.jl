@@ -6,6 +6,7 @@ struct Solver{P<:CombinatorialProblem, O<:OptimizerType, T<:AbstractFloat}
     binary::Bool
     optimizer_type::O
     learning_rate::T
+    gamma_grad::T
     manual_grad::Bool
     h_factor::T
     q::Int
@@ -19,6 +20,7 @@ struct Solver{P<:CombinatorialProblem, O<:OptimizerType, T<:AbstractFloat}
         num_steps::Int;
         betamin::Real = 0.01,
         betamax::Real = 0.5,
+        gamma_grad::Real = 1.0,
         annealing::A = ExponentialAnnealing(),
         optimizer_type::O = AdamOpt(),
         manual_grad::Bool = false,
@@ -40,7 +42,7 @@ struct Solver{P<:CombinatorialProblem, O<:OptimizerType, T<:AbstractFloat}
         learning_rate = T(optimizer_type.learning_rate)
 
         return new{P, O, T}(
-            problem, num_trials, num_steps, betas, binary, optimizer_type, learning_rate, manual_grad, T(h_factor), q, seed, device, T
+            problem, num_trials, num_steps, betas, binary, optimizer_type, learning_rate, T(gamma_grad), manual_grad, T(h_factor), q, seed, device, T
         )
     end
 end
@@ -95,7 +97,7 @@ function fem_iterate(solver::Solver)
             grad = Zygote.gradient(h -> free_energy(solver, h, step), h)[1] 
         end
 
-        Flux.update!(state, h, grad)
+        Flux.update!(state, h, solver.gamma_grad .* grad)
     end
 
     # Return final probabilities
