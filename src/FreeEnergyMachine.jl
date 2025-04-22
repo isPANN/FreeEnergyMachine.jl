@@ -2,10 +2,8 @@ module FreeEnergyMachine
 
 using SparseArrays
 using LinearAlgebra
-using CUDA
 using Random
 using Statistics
-using Distributions
 using Flux
 using Zygote
 
