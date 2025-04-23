@@ -8,6 +8,7 @@ using Statistics
 using Distributions
 using Flux
 using Zygote
+using Enzyme
 
 include("abstractproblem.jl")
 include("max_cut.jl")
