@@ -65,7 +65,6 @@ function fem_iterate(problem,solver::Solver)
         end
 
         grad .= energy_term_grad(problem, p) .+ entropy_term_grad(problem, p) ./ solver.betas[step]
-        # grad .= (1+1/solver.betas[step]).* entropy_term_grad(problem, p)
         # Use Zygote for automatic differentiation
         # grad2 = Zygote.gradient(h -> free_energy(problem,solver, h, step), h)[1] 
         # gval = zero(h)

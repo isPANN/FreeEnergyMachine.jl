@@ -15,6 +15,7 @@ include("max_cut.jl")
 include("optimizer.jl")
 include("fem_solver.jl")
 include("sbm_solver.jl")
+include("qec.jl")
 
 export is_binary, entropy_term, entropy_term_grad, energy_term_grad, energy_term, infer
 export AdamOpt, RMSpropOpt, LinearAnnealing, ExponentialAnnealing, InverseAnnealing
