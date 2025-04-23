@@ -1,7 +1,8 @@
 using FreeEnergyMachine
 using Test
 using Flux
-using Zygote
+# using Zygote
+using FreeEnergyMachine: get_betas
 
 @testset "file reading" begin
     test_content = """
@@ -45,8 +46,11 @@ end
     @test size(entropy_term(prob, p)) == (5,)
     @test size(entropy_term_grad(prob, p)) == (5, node_num)
 
-    solver = Solver(10, 1000; betamin = 1/0.264, betamax = 1/1.1e-3, annealing = InverseAnnealing(), optimizer_type = AdamOpt(0.01), h_factor =1, flavor = 2)
-    @test solver.learning_rate ≈ 0.01f0
+    num_steps = 1000
+    betamin = 1/0.264
+    betamax = 1/1.1e-3
+    betas = get_betas(InverseAnnealing(), num_steps, betamin, betamax)
+    solver = Solver(10, num_steps, betas; h_factor =1, flavor = 2)
 
     # Initialize the solver
     h = initialize(prob, solver)
