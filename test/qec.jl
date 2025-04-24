@@ -3,6 +3,7 @@ using Test
 using FreeEnergyMachine: _even_probability, _odd_probability
 using TensorQEC
 using TensorQEC: generate_spin_glass_sa
+using Random
 
 @testset "_even_probability" begin
     pvec = [0.1,0.1]
@@ -27,5 +28,5 @@ end
 
     config = CSSErrorPattern(TensorQEC._mixed_integer_programming_for_one_solution(tanner, syd)...)
     nsweeps = 100
-    prob,_ = generate_spin_glass_sa(tanner, em, collect(T, 0:1e-3:1.0), nsweeps)
+    prob,_ = generate_spin_glass_sa(tanner, em, collect(T, 0:1e-3:1.0), nsweeps,false)
 end

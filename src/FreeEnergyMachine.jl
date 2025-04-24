@@ -9,6 +9,8 @@ using Distributions
 using Flux
 using Zygote
 using Enzyme
+using TensorQEC
+using TensorQEC: SpinGlassSA, Mod2, VecPtr
 
 include("abstractproblem.jl")
 include("max_cut.jl")
