@@ -39,7 +39,6 @@ end
     prob = MaxCut(node_num, edge_num, A; discretization = true)
     h = randn(Float32, 5, node_num)  # (batch_size, node_num)
     p = sigmoid.(h)
-    # @show round.(p)
     @show infer(prob, p)
     @test size(p) == size(energy_term_grad(prob, p)) == (5, node_num)
     @test size(energy_term(prob, p)) == (5,)
@@ -60,6 +59,7 @@ end
     p_manual = fem_iterate(prob,solver)
     best_config, best_val = infer(prob, p_manual)
     @test best_val == 9
+    @show best_config
 end
 
 @testset "automatic differentiation" begin
