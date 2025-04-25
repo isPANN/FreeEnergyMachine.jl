@@ -76,5 +76,6 @@ function get_grad!(problem::MaxCut,solver, step,h,grad)
 end
 
 function get_grad!(problem,solver, step,h,grad)
+    # grad .= Zygote.gradient(h -> free_energy(problem,solver, h, step), h)[1] 
     _, fval = Enzyme.autodiff(ReverseWithPrimal, Const(h -> free_energy(problem,solver, h, step)), Active, Duplicated(h, grad))
 end
