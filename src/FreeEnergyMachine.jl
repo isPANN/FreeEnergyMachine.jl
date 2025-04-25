@@ -10,7 +10,7 @@ using Flux
 using Zygote
 using Enzyme
 using TensorQEC
-using TensorQEC: SpinGlassSA, Mod2, VecPtr
+using TensorQEC: SpinGlassSA, Mod2, VecPtr,IndependentDepolarizingError,getview,_vecvec2vecptr
 
 include("abstractproblem.jl")
 include("max_cut.jl")

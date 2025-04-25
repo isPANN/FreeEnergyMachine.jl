@@ -1,6 +1,6 @@
 using FreeEnergyMachine
 using Test
-using FreeEnergyMachine: _even_probability, _odd_probability
+using FreeEnergyMachine: _even_probability, generate_femqec
 using TensorQEC
 using TensorQEC: generate_spin_glass_sa
 using Random
@@ -27,6 +27,8 @@ end
     syd = syndrome_extraction(error_qubits, tanner)
 
     config = CSSErrorPattern(TensorQEC._mixed_integer_programming_for_one_solution(tanner, syd)...)
-    nsweeps = 100
-    prob,_ = generate_spin_glass_sa(tanner, em, collect(T, 0:1e-3:1.0), nsweeps,false)
+    config = vcat(config.xerror,config.zerror)
+    prob = generate_femqec(tanner, em)
+
+    energy_term(prob,fill(T(0.0),length(prob.ops)),config)
 end
