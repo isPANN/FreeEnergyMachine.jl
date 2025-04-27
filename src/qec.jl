@@ -36,19 +36,21 @@ end
 function energy_term(sa::FEMQEC{T,IT}, pvec::Vector{T},config::Vector{Mod2}) where {T,IT}
 	E = zero(T)
 	bit_num = length(sa.bit2logp)
-	peven_vec = Vector{T}(undef,bit_num)
-	podd_vec = Vector{T}(undef,bit_num)
+
+	peven_vec = Matrix{T}(undef,2,bit_num)
+	# peven_vec[1,j] stands for the probability of j-th qubit is 0
+	# peven_vec[2,j] stands for the probability of j-th qubit is 1
+
 	for i in 1:bit_num
 		peven,podd = _even_probability(view(pvec,getview(sa.bit2ops,i)))
-		peven_vec[i] = config[i].x ? podd : peven
-		podd_vec[i] = config[i].x ? peven : podd
+		peven_vec[1,i],peven_vec[2,i] = config[i].x ? (podd,peven) : (peven,podd)
 	end
+
 	for j in 1:length(sa.logp)
-		view_j = getview(sa.bit2logp,j)
+		view_j = getview(sa.logp2bit,j)
 		bit_num_j = length(view_j)
-		@show bit_num_j
 		for (pos,val) in enumerate(getview(sa.logp,j))
-			@show pos,val
+			E += prod(i -> peven_vec[1+ readbit(pos-1,i),view_j[i]], 1:bit_num_j) * val
 		end
 	end
 	return E

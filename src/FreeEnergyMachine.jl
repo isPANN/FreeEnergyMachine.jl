@@ -10,6 +10,7 @@ using Flux
 using Zygote
 using Enzyme
 using TensorQEC
+using TensorQEC.BitBasis
 using TensorQEC: SpinGlassSA, Mod2, VecPtr,IndependentDepolarizingError,getview,_vecvec2vecptr
 
 include("abstractproblem.jl")
