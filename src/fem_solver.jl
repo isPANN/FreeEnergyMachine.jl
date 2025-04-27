@@ -65,19 +65,16 @@ function fem_iterate(problem,solver::Solver)
         end
 
         grad .= energy_term_grad(problem, p) .+ entropy_term_grad(problem, p) ./ solver.betas[step]
-        # Use Zygote for automatic differentiation
-        # grad2 = Zygote.gradient(h -> free_energy(problem,solver, h, step), h)[1] 
-        # gval = zero(h)
-        # _, fval = Enzyme.autodiff(ReverseWithPrimal, Const(h -> free_energy(problem,solver, h, step)), Active, Duplicated(h, gval))
-        # @show grad
-        # @show grad2
-        # @show fval
-        # @show gval
-        # @assert false
 
         Flux.update!(state, h, solver.gamma_grad .* grad)
     end
 
     # Return final probabilities
     return solver.flavor == 2 ? sigmoid.(h) : softmax(h, dims=3)
+end
+
+function energy_term_grad(problem, h)
+    gval = similar(h)
+    Enzyme.autodiff(Reverse, h -> energy_term(problem,sigmoid.(h)), Active, Duplicated(h, gval))
+    return gval
 end

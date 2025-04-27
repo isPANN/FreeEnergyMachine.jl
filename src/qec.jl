@@ -5,10 +5,11 @@ struct FEMQEC{T,IT} <: BinaryProblem
 	logp2bit::VecPtr{IT,IT}
 	bit2logp::VecPtr{IT,IT}
 	bit2ops::VecPtr{IT,IT}
+	config::Vector{Mod2}
 end
 
 
-function generate_femqec(tanner::CSSTannerGraph, ide::IndependentDepolarizingError{T}; IT=Int32) where T
+function generate_femqec(tanner::CSSTannerGraph, ide::IndependentDepolarizingError{T},config::Vector{Mod2}; IT=Int32) where T
 	qubit_num = tanner.stgx.nq
     check_number = tanner.stgx.ns + tanner.stgz.ns
 
@@ -30,10 +31,10 @@ function generate_femqec(tanner::CSSTannerGraph, ide::IndependentDepolarizingErr
 	bit2logp = _vecvec2vecptr(vcat(bit_vec,bit_vec), IT,IT)
 
 	bit2ops = _vecvec2vecptr(vcat.(vcat(tanner.stgx.q2s,broadcast.(+,tanner.stgz.q2s,tanner.stgx.ns)),q2logical), IT,IT)
-	return FEMQEC(ops, ops_check, logp, logp2bit, bit2logp, bit2ops)
+	return FEMQEC(ops, ops_check, logp, logp2bit, bit2logp, bit2ops,config)
 end
 
-function energy_term(sa::FEMQEC{T,IT}, pvec::Vector{T},config::Vector{Mod2}) where {T,IT}
+function energy_term(sa::FEMQEC{T,IT}, pvec::Vector{T}) where {T,IT}
 	E = zero(T)
 	bit_num = length(sa.bit2logp)
 
@@ -43,7 +44,7 @@ function energy_term(sa::FEMQEC{T,IT}, pvec::Vector{T},config::Vector{Mod2}) whe
 
 	for i in 1:bit_num
 		peven,podd = _even_probability(view(pvec,getview(sa.bit2ops,i)))
-		peven_vec[1,i],peven_vec[2,i] = config[i].x ? (podd,peven) : (peven,podd)
+		peven_vec[1,i],peven_vec[2,i] = sa.config[i].x ? (podd,peven) : (peven,podd)
 	end
 
 	for j in 1:length(sa.logp)

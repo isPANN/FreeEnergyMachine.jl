@@ -14,13 +14,13 @@ struct MaxCut{T} <: BinaryProblem
     end
 end
 
-function energy_term_grad(problem::MaxCut, p)
-    # Compute the gradient of the MaxCut problem
-    # p: (batch_size, node_num)
-    p_prime = problem.discretization ? round.(p) : p  # each element is eⱼ(+1)
-    _inside_bracket_term = (2 .* p_prime .- 1) * problem.coupling' .* problem._grad_normalize_factor' # (batch_size, node_num)
-    return _inside_bracket_term .* p .* (1 .- p) # (batch_size, node_num)
-end
+# function energy_term_grad(problem::MaxCut, p)
+#     # Compute the gradient of the MaxCut problem
+#     # p: (batch_size, node_num)
+#     p_prime = problem.discretization ? round.(p) : p  # each element is eⱼ(+1)
+#     _inside_bracket_term = (2 .* p_prime .- 1) * problem.coupling' .* problem._grad_normalize_factor' # (batch_size, node_num)
+#     return _inside_bracket_term .* p .* (1 .- p) # (batch_size, node_num)
+# end
 
 function energy_term(problem::MaxCut, p)
     W = problem.coupling  # (N, N)
