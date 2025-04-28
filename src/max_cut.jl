@@ -22,18 +22,31 @@ end
 #     return _inside_bracket_term .* p .* (1 .- p) # (batch_size, node_num)
 # end
 
-function energy_term(problem::MaxCut, p)
+function energy_term(problem::MaxCut{T}, p::AbstractMatrix{T}) where T
+    U = zeros(T, size(p, 1))
+    energy_term!(U, problem, p)
+    return U
+end
+
+function energy_term!(U::AbstractVector{T}, problem::MaxCut{T}, p::AbstractMatrix{T}) where T
     W = problem.coupling  # (N, N)
     # term1 = sum over i,j of W_ij * (P_i + P_j) = 2 * sum(W * p) over batch
-    term1 = 2 .* sum(p * W; dims=2)  # shape: (batch_size, 1)
+    overlap!(U, p, W, fill(T(-2), size(p, 1), size(p, 2)))  # shape: (batch_size, 1)
 
     # term2 = 2 * sum(W_ij * P_i * P_j)
     # (p * W) gives (batch_size, N)
     # then element-wise multiply with p and sum over nodes
-    term2 = 2 .* sum(p .* (p * W); dims=2)  # shape: (batch_size, 1)
+    overlap!(U, p, W, 2 .* p)  # shape: (batch_size, 1)
+    return U  # return shape: (batch_size,)
+end
 
-    U = -(term1 .- term2)  # shape: (batch_size, 1)
-    return vec(U)  # return shape: (batch_size,)
+function overlap!(res::AbstractVector{T}, p1::AbstractMatrix{T}, J::AbstractMatrix{T}, p2::AbstractMatrix{T}) where T
+    @assert size(p1, 1) == size(p2, 1) == size(res, 1)
+    @assert size(J) == (size(p1, 2), size(p2, 2))
+    for ib in axes(p1, 1), j in axes(p2, 2), i in axes(p1, 2)
+        ri = p1[ib, i] * J[i, j] * p2[ib, j]
+        res[ib] += ri
+    end
 end
 
 function infer(problem::MaxCut{T}, p) where T
