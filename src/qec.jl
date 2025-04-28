@@ -1,4 +1,4 @@
-struct FEMQEC{T,IT} <: BinaryProblem
+struct FEMQEC{T,IT} <: BinaryProblem{T}
 	ops::VecPtr{IT,IT}
 	ops_check::VecPtr{IT,IT}
 	logp::VecPtr{T,IT}
@@ -34,24 +34,27 @@ function generate_femqec(tanner::CSSTannerGraph, ide::IndependentDepolarizingErr
 	return FEMQEC(ops, ops_check, logp, logp2bit, bit2logp, bit2ops,config)
 end
 
-function energy_term(sa::FEMQEC{T,IT}, pvec::Vector{T}) where {T,IT}
-	E = zero(T)
+function energy_term(sa::FEMQEC{T,IT}, pvec::AbstractMatrix{T}) where {T,IT}
+	batch_size = size(pvec, 1)
+	E = zeros(T, batch_size)	
 	bit_num = length(sa.bit2logp)
 
-	peven_vec = Matrix{T}(undef,2,bit_num)
-	# peven_vec[1,j] stands for the probability of j-th qubit is 0
-	# peven_vec[2,j] stands for the probability of j-th qubit is 1
+	for b in 1:batch_size
+		peven_vec = Matrix{T}(undef,2,bit_num)
+		# peven_vec[1,j] stands for the probability of j-th qubit is 0
+		# peven_vec[2,j] stands for the probability of j-th qubit is 1
 
-	for i in 1:bit_num
-		peven,podd = _even_probability(view(pvec,getview(sa.bit2ops,i)))
-		peven_vec[1,i],peven_vec[2,i] = sa.config[i].x ? (podd,peven) : (peven,podd)
-	end
+		for i in 1:bit_num
+			peven,podd = _even_probability(view(pvec[b,:],getview(sa.bit2ops,i)))
+			peven_vec[1,i],peven_vec[2,i] = sa.config[i].x ? (podd,peven) : (peven,podd)
+		end
 
-	for j in 1:length(sa.logp)
-		view_j = getview(sa.logp2bit,j)
-		bit_num_j = length(view_j)
-		for (pos,val) in enumerate(getview(sa.logp,j))
-			E += prod(i -> peven_vec[1+ readbit(pos-1,i),view_j[i]], 1:bit_num_j) * val
+		for j in 1:length(sa.logp)
+			view_j = getview(sa.logp2bit,j)
+			bit_num_j = length(view_j)
+			for (pos,val) in enumerate(getview(sa.logp,j))
+				E[b] += prod(i -> peven_vec[1+ readbit(pos-1,i),view_j[i]], 1:bit_num_j) * val
+			end
 		end
 	end
 	return E
@@ -64,4 +67,12 @@ function _even_probability(pvec::AbstractVector{T}) where T
 		peven, podd = (one(T) - p) * peven + p * podd, (one(T) - p) * podd + p * peven
 	end
 	return peven,podd
+end
+
+function optimal_energy(em::IndependentDepolarizingError{T}, tanner::CSSTannerGraph,syd) where {T}
+	prob,_ = generate_spin_glass_sa(tanner, em, collect(T, 0:0.1:1.0), 1,false)
+    ct = compile(IPDecoder(),tanner)
+    res = decode(ct,syd)
+    Eopt = sa_energy(vcat(res.error_qubits.xerror, res.error_qubits.zerror),prob)
+	return Eopt,vcat(res.error_qubits.xerror, res.error_qubits.zerror)
 end

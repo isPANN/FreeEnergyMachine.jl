@@ -136,7 +136,13 @@ end
     
     grad = energy_term_grad(prob, h)
     @show grad
+
+    h2 = copy(h)
+    delta = 1e-3
+    h2[1,1] += delta
+    @test ((energy_term(prob, sigmoid.(h2)) - energy_term(prob, sigmoid.(h)))/delta)[1,1] ≈ grad[1,1] atol = 1e-3
 end
+
 @testset "automatic differentiation" begin
     # Test with automatic differentiation
     solver_auto = Solver(prob, 10, 1000; betamin = 1/0.264, betamax = 1/1.1e-3, annealing = ExponentialAnnealing(), optimizer_type = AdamOpt(0.01), manual_grad = false, h_factor = 1, q = 2, seed = 1234)

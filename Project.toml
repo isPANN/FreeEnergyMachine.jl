@@ -13,7 +13,6 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TensorQEC = "0500ac79-7fb5-4262-aaea-37bb1845d1ef"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [compat]
@@ -25,7 +24,6 @@ LinearAlgebra = "1.11.0"
 Random = "1.11.0"
 SparseArrays = "1.11.0"
 Statistics = "1.11.1"
-Zygote = "0.7.6"
 cuDNN = "1.4.2"
 julia = "1.11"
 

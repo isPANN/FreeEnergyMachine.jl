@@ -1,4 +1,4 @@
-struct MaxCut{T} <: BinaryProblem
+struct MaxCut{T} <: BinaryProblem{T}
     node_num::Int
     edge_num::Int
     coupling::Matrix{T}

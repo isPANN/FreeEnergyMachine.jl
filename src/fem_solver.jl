@@ -22,16 +22,23 @@ struct Solver{RT<:AbstractRule, T<:AbstractFloat}
         )
     end
 end
-
 function initialize(problem::MaxCut{T}, solver::Solver{O, T}) where {O, T}
+    return initialize(problem.node_num, solver)
+end
+
+function initialize(problem::FEMQEC{T,IT}, solver::Solver{O, T}) where {O, T, IT}
+    return initialize(length(problem.bit2logp), solver)
+end
+
+function initialize(node_num::Int, solver::Solver{O, T}) where {O, T}
     # Initialize the solver
 
     if solver.flavor == 2
         # Initialize h and p for binary problems
-        h = solver.h_factor .* randn(T, solver.num_trials, problem.node_num)
+        h = solver.h_factor .* randn(T, solver.num_trials, node_num)
     else
         # Initialize h and p for multi-state problems
-        h = solver.h_factor .* randn(T, solver.num_trials, problem.node_num, solver.flavor)
+        h = solver.h_factor .* randn(T, solver.num_trials, node_num, solver.flavor)
     end
     return h
 end
@@ -48,7 +55,7 @@ function free_energy(problem,solver::Solver, h, step)
     return sum(energy .- entropy)
 end
 
-function fem_iterate(problem::MaxCut{T}, solver::Solver{O, T}) where {O, T}
+function fem_iterate(problem::BinaryProblem{T}, solver::Solver{O, T}) where {O, T}
     # Initialize the solver with local fields.
     h = initialize(problem, solver)
     # optimizer = get_optimizer(solver.optimizer_type)
@@ -65,28 +72,15 @@ function fem_iterate(problem::MaxCut{T}, solver::Solver{O, T}) where {O, T}
         end
 
         grad .= energy_term_grad(problem, h) .+ entropy_term_grad(problem, p) ./ solver.betas[step]
-
-        Flux.update!(state, h, solver.gamma_grad .* grad)
+        Flux.update!(state, h, - solver.gamma_grad .* grad)
     end
 
     # Return final probabilities
     return solver.flavor == 2 ? sigmoid.(h) : softmax(h, dims=3)
 end
 
-# function energy_term_grad(problem, h::AbstractMatrix{T}) where T
-#     gval = similar(h)
-#     function energy_term_grad_wrapper(U, problem, h)
-#         p = sigmoid.(h)
-#         return sum(energy_term!(U, problem, p))
-#     end
-#     U = zeros(T, size(h, 1))
-#     gU = zero(U)
-#     Enzyme.autodiff(Reverse, energy_term_grad_wrapper, Active, Duplicated(U, gU), Const(problem), Duplicated(h, gval))
-#     return gval
-# end
-
-function energy_term_grad(problem, h::AbstractMatrix{T}) where T
-    gval = similar(h)
+function energy_term_grad(problem::BinaryProblem{T}, h::AbstractMatrix{T}) where T
+    gval = zero(h)
     function energy_term_grad_wrapper( problem, h)
         p = sigmoid.(h)
         return sum(energy_term(problem, p))
@@ -94,12 +88,3 @@ function energy_term_grad(problem, h::AbstractMatrix{T}) where T
     Enzyme.autodiff(Reverse, energy_term_grad_wrapper, Active, Const(problem), Duplicated(h, gval))
     return gval
 end
-
-# function energy_term_grad(problem::MaxCut{T}, h::AbstractMatrix{T}) where T
-#     p = sigmoid.(h)
-#     # Compute the gradient of the MaxCut problem
-#     # p: (batch_size, node_num)
-#     p_prime = problem.discretization ? round.(p) : p  # each element is eⱼ(+1)
-#     _inside_bracket_term = (2 .* p_prime .- 1) * problem.coupling' .* problem._grad_normalize_factor' # (batch_size, node_num)
-#     return _inside_bracket_term .* p .* (1 .- p) # (batch_size, node_num)
-# end
