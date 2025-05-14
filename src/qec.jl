@@ -41,8 +41,8 @@ function energy_term(sa::FEMQEC{T,IT}, pvec::AbstractMatrix{T}) where {T,IT}
 
 	for b in 1:batch_size
 		peven_vec = Matrix{T}(undef,2,bit_num)
-		# peven_vec[1,j] stands for the probability of j-th qubit is 0
-		# peven_vec[2,j] stands for the probability of j-th qubit is 1
+		# peven_vec[1,j] stands for the probability that the j-th qubit is 0
+		# peven_vec[2,j] stands for the probability that the j-th qubit is 1
 
 		for i in 1:bit_num
 			peven,podd = _even_probability(view(pvec[b,:],getview(sa.bit2ops,i)))
