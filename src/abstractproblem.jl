@@ -1,6 +1,4 @@
 abstract type CombinatorialProblem end
-
-# ------------------------------
 abstract type ProblemTrait end
 
 struct BinaryProblem <: ProblemTrait end
@@ -9,7 +7,10 @@ struct MultiStateProblem <: ProblemTrait end
 problem_trait(::Type{<:CombinatorialProblem}) = MultiStateProblem()
 is_binary(problem::CombinatorialProblem) = isa(problem_trait(typeof(problem)), BinaryProblem)
 
-# ------------------------------
+function load_problem(prob::Type{<:CombinatorialProblem}, args...)
+    throw(MethodError(load_problem, (prob, args...)))
+end
+
 function infer(::CombinatorialProblem, p)
     throw(MethodError(infer, (typeof(p),)))
 end

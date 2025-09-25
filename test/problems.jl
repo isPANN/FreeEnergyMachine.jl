@@ -17,14 +17,14 @@
     end
 
     # test_filename = joinpath(pkgdir(FreeEnergyMachine), "FEM/benchmarks/maxcut/Gset/G12")
-    A, node_num, edge_num = load_matrix(test_filename; zero_based = true)
+    A, node_num, edge_num = load_weighted_graph(test_filename; zero_based = true)
     
     @test node_num == 5
     @test edge_num == 5
     @test A[1, 2] == 1.0f0
     rm(test_filename)
 
-    prob = MaxCut(node_num, edge_num, A; discretization = true, dtype = Float32)
+    prob = MaxCut(A; discretization = true, dtype = Float32)
     h = randn(Float32, 5, node_num)  # (batch_size, node_num)
     p = sigmoid.(h)
     # @show round.(p)
