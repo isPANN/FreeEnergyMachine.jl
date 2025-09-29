@@ -8,7 +8,7 @@ using Flux
 using Zygote
 
 include("abstractproblem.jl")
-include("problems/weighted_graph.jl")
+include("utils.jl")
 # include specific problems
 include("problems/max_cut.jl")
 include("problems/qubo.jl")
@@ -33,7 +33,7 @@ export energy_term, energy_term_grad
 export entropy_term, entropy_term_grad
 
 # FEM solver
-export Solver
+export Solver, SolverConfig
 export initialize
 export fem_iterate
 export free_energy

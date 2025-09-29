@@ -24,7 +24,7 @@
     @test A[1, 2] == 1.0f0
     rm(test_filename)
 
-    prob = MaxCut(A; discretization = true, dtype = Float32)
+    prob = MaxCut(A; discretization = true)
     h = randn(Float32, 5, node_num)  # (batch_size, node_num)
     p = sigmoid.(h)
     # @show round.(p)
@@ -35,9 +35,18 @@
     @test size(entropy_term_grad(prob, p)) == (5, node_num)
     @test is_binary(prob)
 
-    solver = Solver(prob, 10, 1000; betamin = 1/0.264, betamax = 1/1.1e-3, annealing = InverseAnnealing(), optimizer_type = AdamOpt(0.01), manual_grad = true, h_factor =1, q = 2, seed = 1234)
+    config = SolverConfig(
+        betamin = 1/0.264, 
+        betamax = 1/1.1e-3, 
+        annealing = InverseAnnealing(), 
+        optimizer = AdamOpt(0.01), 
+        manual_grad = true, 
+        h_factor = 1, 
+        seed = 1234
+    )
+    solver = Solver(prob, 10, 1000, 2; config = config)
     @test solver.problem == prob
-    @test solver.learning_rate ≈ 0.01f0
+    @test solver.config.optimizer.learning_rate ≈ 0.01
 
     # Initialize the solver
     h = initialize(solver)
@@ -48,7 +57,16 @@
     @show infer(prob, p_manual)
 
     # Test with automatic differentiation
-    solver_auto = Solver(prob, 10, 1000; betamin = 1/0.264, betamax = 1/1.1e-3, annealing = ExponentialAnnealing(), optimizer_type = AdamOpt(0.01), manual_grad = false, h_factor = 1, q = 2, seed = 1234)
+    config_auto = SolverConfig(
+        betamin = 1/0.264, 
+        betamax = 1/1.1e-3, 
+        annealing = ExponentialAnnealing(), 
+        optimizer = AdamOpt(0.01), 
+        manual_grad = false, 
+        h_factor = 1, 
+        seed = 1234
+    )
+    solver_auto = Solver(prob, 10, 1000, 2; config = config_auto)
     p_auto = fem_iterate(solver_auto)
     @show infer(prob, p_auto)
 

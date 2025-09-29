@@ -17,15 +17,8 @@ struct RMSpropOpt <: OptimizerType
     end
 end
 
-function get_optimizer(opt_type::OptimizerType)
-    if opt_type isa AdamOpt
-        return Flux.Adam(opt_type.learning_rate, (opt_type.β1, opt_type.β2))
-    elseif opt_type isa RMSpropOpt
-        return Flux.RMSProp(opt_type.learning_rate, opt_type.ρ)
-    else
-        error("Unknown optimizer type.")
-    end
-end
+get_optimizer(opt::AdamOpt) = Flux.Adam(opt.learning_rate, (opt.β1, opt.β2))
+get_optimizer(opt::RMSpropOpt) = Flux.RMSProp(opt.learning_rate, opt.ρ)
 
 # -----------------------------
 abstract type AnnealingStrategy end
@@ -33,14 +26,6 @@ struct LinearAnnealing <: AnnealingStrategy end
 struct ExponentialAnnealing <: AnnealingStrategy end
 struct InverseAnnealing <: AnnealingStrategy end
 
-function get_betas(strategy::AnnealingStrategy, num_steps, betamin, betamax)
-    if strategy isa LinearAnnealing
-        return range(betamin, betamax; length=num_steps)
-    elseif strategy isa ExponentialAnnealing
-        return exp.(range(log(betamin), log(betamax); length=num_steps))
-    elseif strategy isa InverseAnnealing
-        return 1 ./ range(betamax, betamin; length=num_steps)
-    else
-        error("Unknown annealing strategy.")
-    end
-end
+get_betas(::LinearAnnealing, num_steps, betamin, betamax) = range(betamin, betamax; length=num_steps)
+get_betas(::ExponentialAnnealing, num_steps, betamin, betamax) = exp.(range(log(betamin), log(betamax); length=num_steps))
+get_betas(::InverseAnnealing, num_steps, betamin, betamax) = 1 ./ range(betamax, betamin; length=num_steps)

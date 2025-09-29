@@ -1,23 +1,23 @@
-struct MaxCut <: CombinatorialProblem
+struct MaxCut{T<:AbstractFloat} <: CombinatorialProblem
     node_num::Int
     # edge_num::Int
-    coupling::AbstractMatrix
+    coupling::AbstractMatrix{T}
     discretization::Bool
-    _grad_normalize_factor::AbstractVector
-    dtype::DataType
+    _grad_normalize_factor::AbstractVector{T}
 
-    function MaxCut(coupling_matrix::AbstractMatrix; discretization::Bool = true, dtype::DataType = Float32)
+    function MaxCut(coupling_matrix::AbstractMatrix; discretization::Bool = true)
         @assert size(coupling_matrix, 1) == size(coupling_matrix, 2)
         node_num = size(coupling_matrix, 1)
         
         # This is the gradient normalization factor cᵢ.
         _grad_normalize_factor = vec(1 ./ sum(abs.(coupling_matrix), dims=2))
 
-        return new(node_num, dtype.(coupling_matrix), discretization, dtype.(_grad_normalize_factor), dtype)
+        T = eltype(coupling_matrix)
+        return new{T}(node_num, T.(coupling_matrix), discretization, T.(_grad_normalize_factor))
     end
 end
 
-problem_trait(::Type{MaxCut}) = BinaryProblem()
+problem_trait(::Type{<:MaxCut}) = BinaryProblem()
 
 function energy_term_grad(problem::MaxCut, p)
     # Compute the gradient of the MaxCut problem
@@ -45,7 +45,8 @@ function infer(problem::MaxCut, p)
     # calculate the real cut value of each configuration
     config = round.(p)
     batchsize, N = size(p)
-    E = zeros(problem.dtype, batchsize)
+    T = eltype(problem.coupling)
+    E = zeros(T, batchsize)
     # E = sum_((i,j) in cal(E)) W_(i,j) (1-delta(p_i, p_j))
     for i in 1:N, j in i+1:N
         Wij = problem.coupling[i, j]
