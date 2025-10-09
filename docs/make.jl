@@ -14,6 +14,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "GPU Usage" => "GPU_USAGE.md",
     ],
 )
 

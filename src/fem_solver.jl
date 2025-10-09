@@ -1,4 +1,4 @@
-struct SolverConfig{A<:AnnealingStrategy, O<:OptimizerType}
+struct SolverConfig{A<:AnnealingStrategy, O<:OptimizerType, D<:AbstractDevice}
     betamin::Float64
     betamax::Float64
     annealing::A
@@ -7,7 +7,7 @@ struct SolverConfig{A<:AnnealingStrategy, O<:OptimizerType}
     manual_grad::Bool
     h_factor::Float64
     seed::Int
-    device::String
+    device::D
     
     function SolverConfig(;
         betamin::Real = 0.01,
@@ -18,9 +18,11 @@ struct SolverConfig{A<:AnnealingStrategy, O<:OptimizerType}
         manual_grad::Bool = false,
         h_factor::Real = 0.01,
         seed::Int = 1,
-        device::String = "cpu"
+        device::Union{String, AbstractDevice} = "cpu"
     ) where {A<:AnnealingStrategy, O<:OptimizerType}
-        new{A, O}(betamin, betamax, annealing, optimizer, gamma_grad, manual_grad, h_factor, seed, device)
+        dev = device isa String ? select_device(device) : device
+        D = typeof(dev)
+        new{A, O, D}(betamin, betamax, annealing, optimizer, gamma_grad, manual_grad, h_factor, seed, dev)
     end
 end
 
@@ -65,12 +67,14 @@ function initialize(solver::Solver)
     Random.seed!(solver.config.seed)
 
     T = eltype(solver.betas)  # Get the type from the betas vector
+    device = solver.config.device
+    
     if solver.binary
         # Initialize h and p for binary problems
-        h = solver.config.h_factor .* randn(T, solver.num_trials, solver.problem.node_num)
+        h = solver.config.h_factor .* randn_device(device, T, solver.num_trials, solver.problem.node_num)
     else
         # Initialize h and p for multi-state problems
-        h = solver.config.h_factor .* randn(T, solver.num_trials, solver.problem.node_num, solver.q)
+        h = solver.config.h_factor .* randn_device(device, T, solver.num_trials, solver.problem.node_num, solver.q)
     end
     return h
 end
@@ -93,10 +97,15 @@ function fem_iterate(solver::Solver)
     optimizer = get_optimizer(solver.config.optimizer)
     state = Flux.setup(optimizer, h)
 
+    # Transfer betas to the same device as h
+    device = solver.config.device
+    betas_device = to_device(device, solver.betas)
+    inv_betas_device = to_device(device, solver.inv_betas)
+
     grad = solver.config.manual_grad ? similar(h) : nothing
     pbuf = solver.config.manual_grad && solver.binary ? similar(h) : nothing
 
-    for step in 1:length(solver.betas)
+    for step in 1:length(betas_device)
         if solver.config.manual_grad
             # Calculate probabilities once per step only when needed
             if solver.binary
@@ -105,7 +114,7 @@ function fem_iterate(solver::Solver)
             else
                 p = softmax(h, dims=3)
             end
-            grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* solver.inv_betas[step]
+            grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* inv_betas_device[step]
         else
             # Use Zygote for automatic differentiation
             grad = Zygote.gradient(h -> free_energy(solver, h, step), h)[1] 

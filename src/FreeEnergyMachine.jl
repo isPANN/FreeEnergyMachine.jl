@@ -6,7 +6,9 @@ using Random
 using Statistics
 using Flux
 using Zygote
+using CUDA
 
+include("device.jl")
 include("abstractproblem.jl")
 include("utils.jl")
 # include specific problems
@@ -17,6 +19,12 @@ include("problems/qubo.jl")
 include("optimizer.jl")
 include("fem_solver.jl")
 
+
+# Device management
+export AbstractDevice, CPU, GPU
+export to_device, select_device
+export array_type, create_array, randn_device
+export cpu, gpu
 
 # load problem
 export load_weighted_graph
