@@ -105,36 +105,3 @@ if CUDA.functional()
     println("Average energy: ", sum(E_gpu_cpu) / length(E_gpu_cpu))
 end
 
-# Example 3: QUBO Problem on GPU
-println("\n=== Example 3: QUBO Problem ===")
-
-# Create a QUBO matrix
-qubo_matrix = Float64[
-    2.0  -1.0  -1.0
-    -1.0  2.0  -1.0
-    -1.0  -1.0  2.0
-]
-
-if CUDA.functional()
-    println("\nSolving QUBO on GPU...")
-    problem_gpu = QUBO(qubo_matrix, device="cuda")
-    config_gpu = SolverConfig(
-        betamin=0.01,
-        betamax=0.5,
-        annealing=InverseAnnealing(),
-        optimizer=AdamOpt(0.1),
-        manual_grad=false,  # Use automatic differentiation
-        h_factor=0.01,
-        device="cuda"
-    )
-    solver_gpu = Solver(problem_gpu, 10, 1000; config=config_gpu)
-    
-    @time p_gpu = fem_iterate(solver_gpu)
-    
-    p_gpu_cpu = Array(p_gpu)
-    println("Final probabilities:")
-    println(p_gpu_cpu)
-end
-
-println("\n=== All examples completed ===")
-

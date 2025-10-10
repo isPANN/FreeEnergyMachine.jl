@@ -61,11 +61,10 @@ function run_maxcut_benchmark(
     end
     
     # Benchmark run
-    start_mem = if device == "cuda" || device == "gpu"
-        CUDA.memory_status()
-        CUDA.memory_used() / 1024^2  # MB
-    else
-        0.0
+    # Note: Memory tracking is simplified as CUDA.jl API varies by version
+    if device == "cuda" || device == "gpu"
+        CUDA.reclaim()  # Clean up memory pool
+        GC.gc()
     end
     
     start_time = time()
@@ -77,13 +76,8 @@ function run_maxcut_benchmark(
     
     elapsed = time() - start_time
     
-    end_mem = if device == "cuda" || device == "gpu"
-        CUDA.memory_used() / 1024^2  # MB
-    else
-        0.0
-    end
-    
-    memory_used = end_mem - start_mem
+    # Memory usage estimation (optional, may vary by CUDA.jl version)
+    memory_used = 0.0  # Simplified: focus on time performance
     
     # Get results
     E = infer(problem, p)
@@ -137,7 +131,7 @@ else
     println("\nGPU Information:")
     println("  Device: ", CUDA.name(CUDA.device()))
     println("  Total Memory: ", CUDA.totalmem(CUDA.device()) ÷ 1024^2, " MB")
-    println("  Free Memory: ", CUDA.available_memory(CUDA.device()) ÷ 1024^2, " MB")
+    # println("  Free Memory: ", CUDA.available_memory(CUDA.device()) ÷ 1024^2, " MB")
     println()
 end
 

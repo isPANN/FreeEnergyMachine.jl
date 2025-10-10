@@ -99,13 +99,11 @@ function fem_iterate(solver::Solver)
 
     # Transfer betas to the same device as h
     device = solver.config.device
-    betas_device = to_device(device, solver.betas)
-    inv_betas_device = to_device(device, solver.inv_betas)
 
     grad = solver.config.manual_grad ? similar(h) : nothing
     pbuf = solver.config.manual_grad && solver.binary ? similar(h) : nothing
 
-    for step in 1:length(betas_device)
+    for step in 1:length(solver.inv_betas)
         if solver.config.manual_grad
             # Calculate probabilities once per step only when needed
             if solver.binary
@@ -114,7 +112,9 @@ function fem_iterate(solver::Solver)
             else
                 p = softmax(h, dims=3)
             end
-            grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* inv_betas_device[step]
+            # Use CPU array to avoid scalar indexing on GPU
+            inv_beta_step = solver.inv_betas[step]
+            grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* inv_beta_step
         else
             # Use Zygote for automatic differentiation
             grad = Zygote.gradient(h -> free_energy(solver, h, step), h)[1] 

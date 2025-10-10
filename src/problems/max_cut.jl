@@ -58,16 +58,25 @@ end
 
 function infer(problem::MaxCut, p)
     # calculate the real cut value of each configuration
-    config = round.(p)
+    config = round.(p)  # (batchsize, N)
     batchsize, N = size(p)
     T = eltype(problem.coupling)
-    E = zeros(T, batchsize)
+    
+    # Move coupling to CPU to avoid GPU scalar indexing
+    W_cpu = Array(problem.coupling)
+    
+    # Initialize energy on same device as config
+    E = similar(config, T, batchsize)
+    fill!(E, zero(T))
+    
     # E = sum_((i,j) in cal(E)) W_(i,j) (1-delta(p_i, p_j))
-    for i in 1:N, j in i+1:N
-        Wij = problem.coupling[i, j]
-        if Wij ≠ 0
-            for b in 1:batchsize
-                E[b] += Wij * (config[b, i] ≠ config[b, j])
+    # Iterate over node pairs, but vectorize over batches
+    for i in 1:N
+        for j in i+1:N
+            Wij = W_cpu[i, j]  # Scalar indexing on CPU array
+            if Wij ≠ 0
+                # Vectorized operation over all batches (GPU-friendly)
+                E .+= Wij .* (config[:, i] .!= config[:, j])
             end
         end
     end
