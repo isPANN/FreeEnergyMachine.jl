@@ -32,7 +32,7 @@ struct MaxCut{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: C
     end
 end
 
-problem_trait(::Type{<:MaxCut}) = BinaryProblem()
+is_binary(problem::MaxCut) = true
 
 function energy_term_grad(problem::MaxCut, p)
     # Compute the gradient of the MaxCut problem

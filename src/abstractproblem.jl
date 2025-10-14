@@ -1,11 +1,8 @@
 abstract type CombinatorialProblem end
-abstract type ProblemTrait end
 
-struct BinaryProblem <: ProblemTrait end
-struct MultiStateProblem <: ProblemTrait end
-
-problem_trait(::Type{<:CombinatorialProblem}) = MultiStateProblem()
-is_binary(problem::CombinatorialProblem) = isa(problem_trait(typeof(problem)), BinaryProblem)
+function is_binary(problem::CombinatorialProblem)
+    throw(MethodError(is_binary, (typeof(problem),)))
+end
 
 function load_problem(prob::Type{<:CombinatorialProblem}, args...)
     throw(MethodError(load_problem, (prob, args...)))
@@ -56,7 +53,8 @@ end
 function _entropy_binary(p::AbstractMatrix)
     # p: (batch_size, node_num)
     # S_MF = - sum_i p_i * log(p_i) - (1 - p_i) * log(1 - p_i)
-    return - sum(p .* log.(p) .+ (1 .- p) .* log.(1 .- p), dims=2)[:]
+    entropy = - sum(p .* log.(p) .+ (1 .- p) .* log.(1 .- p), dims=2)
+    return vec(entropy)
 end
 
 function _entropy_grad_binary(p::AbstractMatrix)

@@ -1,10 +1,3 @@
-"""
-GPU vs CPU Benchmark for FreeEnergyMachine.jl
-
-This script compares the performance of CPU and GPU implementations
-for various problem sizes and configurations.
-"""
-
 using FreeEnergyMachine
 using CUDA
 using Printf
@@ -57,15 +50,15 @@ function run_maxcut_benchmark(
     if device == "cuda" || device == "gpu"
         _ = fem_iterate(solver)
         CUDA.synchronize()
-        GC.gc()
+        # GC.gc()
     end
     
     # Benchmark run
     # Note: Memory tracking is simplified as CUDA.jl API varies by version
-    if device == "cuda" || device == "gpu"
-        CUDA.reclaim()  # Clean up memory pool
-        GC.gc()
-    end
+    # if device == "cuda" || device == "gpu"
+    #     CUDA.reclaim()  # Clean up memory pool
+    #     GC.gc()
+    # end
     
     start_time = time()
     p = fem_iterate(solver)

@@ -32,4 +32,4 @@ struct QUBO{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: Com
     end
 end
 
-problem_trait(::Type{<:QUBO}) = BinaryProblem()
+is_binary(problem::QUBO) = true

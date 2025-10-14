@@ -1,7 +1,9 @@
-@testset "Max-Cut" begin
-    using Flux
-    using Zygote
+using Test
+using FreeEnergyMachine
+using Flux
+using Zygote
 
+@testset "Max-Cut" begin
     test_content = """
                     5 5
                     0 1 1

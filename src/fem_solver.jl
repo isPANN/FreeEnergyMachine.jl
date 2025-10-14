@@ -65,6 +65,9 @@ function initialize(solver::Solver)
     # Initialize the solver
     # Set the random seed for reproducibility
     Random.seed!(solver.config.seed)
+    if solver.config.device isa GPU
+        CUDA.seed!(solver.config.seed)
+    end
 
     T = eltype(solver.betas)  # Get the type from the betas vector
     device = solver.config.device
@@ -98,7 +101,7 @@ function fem_iterate(solver::Solver)
     state = Flux.setup(optimizer, h)
 
     # Transfer betas to the same device as h
-    device = solver.config.device
+    # device = solver.config.device
 
     grad = solver.config.manual_grad ? similar(h) : nothing
     pbuf = solver.config.manual_grad && solver.binary ? similar(h) : nothing
@@ -112,7 +115,6 @@ function fem_iterate(solver::Solver)
             else
                 p = softmax(h, dims=3)
             end
-            # Use CPU array to avoid scalar indexing on GPU
             inv_beta_step = solver.inv_betas[step]
             grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* inv_beta_step
         else
