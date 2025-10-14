@@ -1,6 +1,6 @@
 using FreeEnergyMachine
 using Test
-using CUDA
+using CUDA, cuDNN
 
 @testset "FreeEnergyMachine.jl" begin
     include("problems.jl")
