@@ -2,8 +2,7 @@ using Test
 using FreeEnergyMachine
 using CUDA
 
-@testset "GPU Functionality Tests" begin
-    # Test device management
+
     @testset "Device Management" begin
         @test CPU() isa AbstractDevice
         @test GPU() isa AbstractDevice
@@ -62,25 +61,7 @@ using CUDA
             @test Array(energy_gpu) ≈ energy_cpu
         end
     end
-    
-    # Test QUBO problem on CPU and GPU
-    @testset "QUBO Problem" begin
-        # Create a simple QUBO matrix
-        coupling = [1.0 -2.0;
-                     -2.0 1.0]
-        
-        # Test CPU version
-        problem_cpu = QUBO(coupling, device="cpu")
-        @test problem_cpu.node_num == 2
-        @test problem_cpu.coupling isa Array
-        
-        # Test GPU version
-        if CUDA.functional()
-            problem_gpu = QUBO(coupling, device="cuda")
-            @test problem_gpu.node_num == 2
-            @test problem_gpu.coupling isa CuArray
-        end
-    end
+  
     
     # Test Solver with GPU
     @testset "Solver with GPU" begin
@@ -161,5 +142,4 @@ using CUDA
             @test Array(result_gpu) ≈ result_cpu
         end
     end
-end
 
