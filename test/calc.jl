@@ -1,7 +1,6 @@
 using Test
 using CUDA, cuDNN
 using FreeEnergyMachine
-using BenchmarkTools
 using Random
 using Zygote
 
@@ -63,7 +62,5 @@ end
     p = rand(Float32, 5, 10, 2)
     problem = bMinCut(W_sym, 2, λ=0.1f0)
     E = FreeEnergyMachine.energy_term(problem, p)
-    @show E
     infer_E = FreeEnergyMachine.infer(problem, p)
-    @show infer_E
 end

@@ -48,27 +48,8 @@ Get a string representation of the device.
 device_string(::CPU) = "cpu"
 device_string(::GPU) = "cuda"
 
-function pick_gpu_by_nvidiasmi(min_free_mb::Int=4096)
-    raw = read(`nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits`, String)
-    free = [(parse(Int, split(line, ",")[2]), parse(Int, split(line, ",")[1])) for line in split(raw, '\n') if !isempty(line)]
-    if isempty(free); return nothing; end
-    best = argmax(first, free)
-    best_free, best_idx = best
-    return best_free >= min_free_mb ? best_idx : nothing
-end
 
-"""
-    select_device(device_str::String)
-
-Get device from string specification.
-
-# Arguments
-- `device_str::String`: Device specification ("cpu" or "cuda"/"gpu")
-
-# Returns
-- Device object (CPU() or GPU())
-"""
-function select_device(device_str::String)
+function select_device(device_str::String; gpu_id::Int=0)
     device_lower = lowercase(device_str)
     if device_lower == "cpu"
         return CPU()
@@ -77,9 +58,8 @@ function select_device(device_str::String)
             @warn "CUDA is not available, falling back to CPU"
             return CPU()
         end
-        device_idx = pick_gpu_by_nvidiasmi()
-        CUDA.device!(device_idx)
-        @info "Selected GPU: $device_idx"
+        CUDA.device!(gpu_id)
+        @info "Selected GPU: $gpu_id"
         return GPU()
     else
         throw(ArgumentError("Unknown device: $device_str. Use 'cpu' or 'cuda'/'gpu'"))

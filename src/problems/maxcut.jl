@@ -1,9 +1,9 @@
 struct MaxCut{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: CombinatorialProblem
     node_num::Int
-    # edge_num::Int
     coupling::M
     discretization::Bool
     _grad_normalize_factor::V
+    q::Int  # MaxCut is always binary (q=2)
 
     function MaxCut(
         coupling_matrix::AbstractMatrix; 
@@ -28,11 +28,11 @@ struct MaxCut{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: C
         M = typeof(coupling_device)
         V = typeof(grad_norm_device)
         
-        return new{T, M, V}(node_num, coupling_device, discretization, grad_norm_device)
+        return new{T, M, V}(node_num, coupling_device, discretization, grad_norm_device, 2)
     end
 end
 
-is_binary(problem::MaxCut) = true
+is_binary(prob::MaxCut) = prob.q == 2
 
 function energy_term_grad(problem::MaxCut, p)
     # Compute the gradient of the MaxCut problem
