@@ -7,13 +7,15 @@ using Statistics
 using Flux
 using Zygote
 using CUDA
+using SparseArrays
 
 include("device.jl")
 include("abstractproblem.jl")
 include("utils.jl")
 # include specific problems
-include("problems/max_cut.jl")
-include("problems/qubo.jl")
+include("problems/maxcut.jl")
+include("problems/bmincut.jl")
+# include("problems/qubo.jl")
 
 # include solvers
 include("optimizer.jl")
@@ -29,7 +31,8 @@ export cpu, gpu
 # load problem
 export load_weighted_graph
 export MaxCut
-export QUBO
+export bMinCut
+# export QUBO
 
 # determine if spins in the problem are binary
 export is_binary

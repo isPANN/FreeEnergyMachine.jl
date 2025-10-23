@@ -20,29 +20,38 @@ function energy_term(::CombinatorialProblem, p)
     throw(MethodError(energy_term, (typeof(p),)))
 end
 
-function entropy_term(problem::CombinatorialProblem, p::AbstractMatrix)
+function entropy_term(problem::CombinatorialProblem, p)
     # q represents the number of states of each spin.
     if is_binary(problem)
         return _entropy_binary(p)
     else
-        # return entropy_q(p)
-        throw(ArgumentError("To Be Implemented"))
+        return _entropy_q(p)
     end
 end
 
-function entropy_term_grad(problem::CombinatorialProblem, p::AbstractMatrix)
+function entropy_term_grad(problem::CombinatorialProblem, p)
     # q represents the number of states of each spin.
     if is_binary(problem)
-        return _entropy_grad_binary(p)
+        g = similar(p)
+        _entropy_grad_binary!(g, p)
+        return g
     else
         # return entropy_grad_q(p)
         throw(ArgumentError("To Be Implemented"))
     end
 end
 
-# function entropy_q(p)
-#     return -sum(p .* log.(p), dims=3) |> x -> sum(x, dims=2) |> vec
-# end
+@inline function _h(x::T) where {T<:Real}
+    T0 = eps(T)
+    x = clamp(x, T0, one(T))
+    return -x * log(x)
+end
+
+function _entropy_q(p::AbstractArray)
+    # p: (batch_size, node_num, q)
+    # S_MF = - sum_i sum_σᵢ∈{1,2,...,q} p_i(σᵢ) log(p_i(σᵢ))
+    vec(sum(_h.(p), dims=(2,3)))
+end
 
 # function entropy_grad_q(p)
 #     logp = log.(p)
@@ -50,14 +59,28 @@ end
 #     return -p .* (logp .- sumlogp)
 # end
 
-function _entropy_binary(p::AbstractMatrix)
-    # p: (batch_size, node_num)
-    # S_MF = - sum_i p_i * log(p_i) - (1 - p_i) * log(1 - p_i)
-    entropy = - sum(p .* log.(p) .+ (1 .- p) .* log.(1 .- p), dims=2)
-    return vec(entropy)
+@inline function _hb(x::T) where {T<:Real}
+    x  = clamp(x, eps(T), one(T) - eps(T))
+    y  = one(T) - x
+    - (x * log(x) + y * log1p(-x))      
 end
 
-function _entropy_grad_binary(p::AbstractMatrix)
+function _entropy_binary(p::AbstractMatrix)
     # p: (batch_size, node_num)
-    return p .* (1 .- p) .* (log.(p) .- log.(1 .- p))
+    # S_MF = - sum_i [p_i * log(p_i) + (1 - p_i) * log(1 - p_i)]
+    vec(sum(_hb.(p), dims=2))
+end
+
+@inline function _hb_g(x::T) where {T<:Real}
+    x = clamp(x, eps(T), one(T) - eps(T))
+    y = one(T) - x
+    x * y * (log(x) - log1p(-x))
+end
+
+function _entropy_grad_binary!(g::AbstractMatrix, p::AbstractMatrix)
+    # p: (batch_size, node_num)
+    # return p .* (1 .- p) .* (log.(p) .- log.(1 .- p))
+    @assert size(g) == size(p)
+    @. g = _hb_g(p)
+    return g
 end

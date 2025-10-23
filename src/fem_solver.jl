@@ -74,6 +74,7 @@ function initialize(solver::Solver)
     
     if solver.binary
         # Initialize h and p for binary problems
+        # for binary problems, we only need one varaible for each spin
         h = solver.config.h_factor .* randn_device(device, T, solver.num_trials, solver.problem.node_num)
     else
         # Initialize h and p for multi-state problems
@@ -115,7 +116,7 @@ function fem_iterate(solver::Solver)
             else
                 p = softmax(h, dims=3)
             end
-            inv_beta_step = solver.inv_betas[step]
+            inv_beta_step = to_device(solver.config.device, solver.inv_betas[step])
             grad .= energy_term_grad(solver.problem, p) .+ entropy_term_grad(solver.problem, p) .* inv_beta_step
         else
             # Use Zygote for automatic differentiation

@@ -6,6 +6,10 @@ using CUDA, cuDNN
     include("problems.jl")
 end
 
+@testset "calculations" begin
+    include("calc.jl")
+end
+
 if CUDA.functional()
     @testset "GPU" begin
         include("gpu_test.jl")

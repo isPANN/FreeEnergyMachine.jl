@@ -1,6 +1,6 @@
 using Test
+using CUDA, cuDNN
 using FreeEnergyMachine
-using CUDA
 
 @testset "Device Management" begin
     @test CPU() isa AbstractDevice
@@ -12,8 +12,8 @@ using CUDA
     if CUDA.functional()
         @test select_device("cuda") isa GPU
         @test select_device("gpu") isa GPU
+        device_idx = FreeEnergyMachine.pick_gpu_by_nvidiasmi()
     end
-    
     # Test array operations
     x = randn(10, 10)
     x_cpu = to_device(CPU(), x)
@@ -31,7 +31,7 @@ using CUDA
 end
 
 # Test MaxCut problem on CPU and GPU
-@testset "MaxCut Problem" begin
+    @testset "MaxCut Problem" begin
     # Create a simple graph
     coupling = [0.0 1.0 1.0;
                     1.0 0.0 1.0;
@@ -76,7 +76,7 @@ end
     config_cpu = SolverConfig(
         betamin=0.01,
         betamax=0.5,
-        manual_grad=true,
+        manual_grad=false,
         device="cpu"
     )
     solver_cpu = Solver(problem_cpu, 10, 100; config=config_cpu)
@@ -145,4 +145,3 @@ end
         @test Array(result_gpu) ≈ result_cpu
     end
 end
-

@@ -35,3 +35,17 @@ function load_weighted_graph(path::String; zero_based::Bool = false, symmetric::
         return A, num_nodes, num_edges
     end
 end
+
+function one_hot_argmax(p)
+    @assert ndims(p) == 3 "p must be (batch, node, q)"
+    B, N, Q = size(p)
+
+    idx = mapslices(argmax, p; dims=3)
+    idx = dropdims(idx; dims=3)  # (B, N)
+
+    s = falses(B, N, Q)
+    for b in 1:B, i in 1:N
+        s[b, i, idx[b, i]] = true
+    end
+    return s
+end
