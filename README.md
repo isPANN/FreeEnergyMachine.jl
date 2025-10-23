@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/isPANN/FreeEnergyMachine.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/isPANN/FreeEnergyMachine.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/isPANN/FreeEnergyMachine.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/isPANN/FreeEnergyMachine.jl)
 
-A Julia implementation of the Free Energy Machine (FEM) algorithm for solving combinatorial optimization problems with **GPU acceleration** support via CUDA.jl.
+A Julia implementation of the [Free Energy Machine (FEM)](https://github.com/Fanerst/FEM) algorithm for solving combinatorial optimization problems with **GPU acceleration** support via CUDA.jl.
 
 ## Features
 
@@ -128,22 +128,32 @@ Performance scales with problem size and number of parallel trials.
 
 ## Citation
 
-If you use this package in your research, please cite:
 
 ```bibtex
 @software{FreeEnergyMachine.jl,
   author = {Xiwei Pan},
-  title = {FreeEnergyMachine.jl: GPU-Accelerated Combinatorial Optimization},
-  year = {2024},
+  title = {FreeEnergyMachine.jl},
+  year = {2025},
   url = {https://github.com/isPANN/FreeEnergyMachine.jl}
 }
 ```
 
-## License
+For original paper, please refer to:
+```bibtex
+@article{shen2025free,
+  title={Free-energy machine for combinatorial optimization},
+  author={Shen, Zi-Song and Pan, Feng and Wang, Yao and Men, Yi-Ding and Xu, Wen-Biao and Yung, Man-Hong and Zhang, Pan},
+  journal={Nature Computational Science},
+  pages={1--11},
+  year={2025},
+  publisher={Nature Publishing Group US New York}
+}
+```
 
-MIT License - see LICENSE file for details.
+For official implementation in python, please refer to https://github.com/Fanerst/FEM
+
 
 ## Related Projects
 
-- Python implementation: [FEM](FEM/) directory
+- Python implementation: [FEM]([FEM/](https://github.com/Fanerst/FEM)) 
 - [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) - GPU programming in Julia
