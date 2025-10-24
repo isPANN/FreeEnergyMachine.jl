@@ -1,9 +1,9 @@
 struct QUBO{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: CombinatorialProblem
     node_num::Int
-    # edge_num::Int
     coupling::M
     discretization::Bool
     _grad_normalize_factor::V
+    q::Int  # QUBO is always binary (q=2)
 
     function QUBO(
         coupling_matrix::AbstractMatrix; 
@@ -28,8 +28,8 @@ struct QUBO{T<:AbstractFloat, M<:AbstractMatrix{T}, V<:AbstractVector{T}} <: Com
         M = typeof(coupling_device)
         V = typeof(grad_norm_device)
         
-        return new{T, M, V}(node_num, coupling_device, discretization, grad_norm_device)
+        return new{T, M, V}(node_num, coupling_device, discretization, grad_norm_device, 2)
     end
 end
 
-is_binary(problem::QUBO) = true
+is_binary(prob::QUBO) = prob.q == 2

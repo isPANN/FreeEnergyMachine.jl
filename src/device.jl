@@ -1,5 +1,3 @@
-# Device management utilities for CPU/GPU support
-
 abstract type AbstractDevice end
 struct CPU <: AbstractDevice end
 struct GPU <: AbstractDevice end
@@ -50,18 +48,8 @@ Get a string representation of the device.
 device_string(::CPU) = "cpu"
 device_string(::GPU) = "cuda"
 
-"""
-    select_device(device_str::String)
 
-Get device from string specification.
-
-# Arguments
-- `device_str::String`: Device specification ("cpu" or "cuda"/"gpu")
-
-# Returns
-- Device object (CPU() or GPU())
-"""
-function select_device(device_str::String)
+function select_device(device_str::String; gpu_id::Int=0)
     device_lower = lowercase(device_str)
     if device_lower == "cpu"
         return CPU()
@@ -70,6 +58,8 @@ function select_device(device_str::String)
             @warn "CUDA is not available, falling back to CPU"
             return CPU()
         end
+        CUDA.device!(gpu_id)
+        @info "Selected GPU: $gpu_id"
         return GPU()
     else
         throw(ArgumentError("Unknown device: $device_str. Use 'cpu' or 'cuda'/'gpu'"))

@@ -1,7 +1,10 @@
 using Test
+using CUDA, cuDNN
 using FreeEnergyMachine
 using Flux
 using Zygote
+using SparseArrays
+using LinearAlgebra
 
 @testset "Max-Cut" begin
     test_content = """
@@ -81,3 +84,4 @@ using Zygote
     grad = Zygote.gradient(h -> free_energy(solver, h, 1), h_test)[1]
     @test size(grad) == size(h_test)
 end
+
