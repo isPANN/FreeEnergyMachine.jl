@@ -16,8 +16,10 @@ struct bMinCut{T<:AbstractFloat, M<:AbstractMatrix{T}} <: CombinatorialProblem
         W2 = sum(coupling_matrix.^2)
         imbalance_weight = T(λ * W2 / (node_num^2))
 
+        W_upper_cpu = triu(T.(coupling_matrix), 1)
+
         dev = device isa String ? select_device(device) : device
-        coupling_device = to_device(dev, T.(coupling_matrix))
+        coupling_device = to_device(dev, W_upper_cpu)
         M = typeof(coupling_device)
         
         return new{T, M}(node_num, coupling_device, q, imbalance_weight)
@@ -32,10 +34,13 @@ function _energy_term_first_term(prob::bMinCut{T}, p) where {T}
     B, N, q = size(p)
 
     # Count each undirected edge once
-    W_upper = triu(prob.coupling, 1)
+    W_upper = prob.coupling
 
+    # Convert to dense array first (避免稀疏矩阵在 GPU 上的标量索引问题)
+    W_dense = Array(W_upper)
+    
     # Match device & eltype with p
-    Wd = (p isa CuArray) ? cu(W_upper) : W_upper
+    Wd = (p isa CuArray) ? cu(W_dense) : W_dense
     Wd = T.(Wd)  # ensure same element type as p
 
     # Build per-batch Pi Pj^T: [N,q,B] * [q,N,B] -> [N,N,B]
@@ -67,7 +72,7 @@ function energy_term(prob::bMinCut{T}, p) where T
     end
 end
 
-function one_hot_argmax(p)
+function one_hot_argmax(p::Array{T,3}) where {T<:Real}
     @assert ndims(p) == 3 "p must be (batch, node, q)"
     B, N, Q = size(p)
     
@@ -75,13 +80,20 @@ function one_hot_argmax(p)
     p_flat = reshape(p, B * N, Q)
     idx_flat = mapslices(argmax, p_flat; dims=2) |> vec  # (B*N,)
     
-    # Create one-hot matrix
-    s_flat = falses(B * N, Q)
+    # Create one-hot matrix (use same type as input)
+    s_flat = zeros(T, B * N, Q)
     for i in 1:(B * N)
-        s_flat[i, idx_flat[i]] = true
+        s_flat[i, idx_flat[i]] = one(T)
     end
     
     return reshape(s_flat, B, N, Q)
+end
+
+function one_hot_argmax(p::CuArray{T,3}) where {T<:Real}
+    # [B,N,1]
+    m = maximum(p; dims=3)
+    # [B,N,Q] CuArray; ties -> multi-1s（若需严格 argmax，可再打破并列）
+    return T.(p .== m)  # 转换为浮点类型以保持一致性
 end
 
 function infer(prob::bMinCut{T}, p) where T
@@ -92,27 +104,28 @@ function infer(prob::bMinCut{T}, p) where T
     end
     
     batch_size, N, q = size(config)
-    W = prob.coupling
-    W_upper = triu(W, 1)
+    W_upper = prob.coupling
     
-    # Pre-allocate results
-    E = similar(config, T, batch_size)
+    # Convert to dense array first (避免稀疏矩阵在 GPU 上的标量索引问题)
+    W_dense = Array(W_upper)
     
-    # Efficient loop (GPU kernels will fuse operations)
-    for b in 1:batch_size
-        config_b = @view config[b, :, :]  # [N, q]
-        
-        # Compute δ(σ_i, σ_j)
-        delta_ij = config_b * transpose(config_b)  # [N, N]
-        
-        # Edge term
-        edge_term = sum(W_upper .* (one(T) .- delta_ij))
-        
-        # Penalty term
-        penalty_term = prob.λ * (sum(delta_ij) - T(N))
-        
-        E[b] = edge_term + penalty_term
-    end
+    # Match device with config
+    W_upper = (config isa CuArray) ? cu(W_dense) : W_dense
+    
+    # Vectorized computation (no scalar indexing)
+    # config: [B, N, q]
+    # Compute delta_ij for all batches: [N, q, B] * [q, N, B] -> [N, N, B]
+    config_NqB = permutedims(config, (2, 3, 1))  # [N, q, B]
+    delta_NNB = batched_mul(config_NqB, permutedims(config_NqB, (2, 1, 3)))  # [N, N, B]
+    
+    # Edge term: sum over (i,j) for each batch
+    # W_upper: [N, N], delta_NNB: [N, N, B]
+    edge_term = vec(sum(reshape(W_upper, N, N, 1) .* (one(T) .- delta_NNB); dims=(1, 2)))  # [B]
+    
+    # Penalty term: λ * (sum(delta_ij) - N) for each batch
+    penalty_term = prob.λ .* (vec(sum(delta_NNB; dims=(1, 2))) .- T(N))  # [B]
+    
+    E = edge_term .+ penalty_term  # [B]
     
     return batch_size == 1 ? E[1] : E
 end

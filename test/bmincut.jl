@@ -1,7 +1,9 @@
 using Test
+using CUDA, cuDNN
 using FreeEnergyMachine
 using SparseArrays
 using LinearAlgebra
+using Flux
 
 @testset "bMinCut" begin
     test_content = """
@@ -44,9 +46,10 @@ using LinearAlgebra
        optimizer = AdamOpt(0.01), 
        manual_grad = false, 
        h_factor = 1, 
-       seed = 1234
+       seed = 1234,
+       device = "cuda"
    )
-   solver_auto = Solver(prob, 10, 1000, q; config = config_auto)
+   solver_auto = Solver(prob, 100, 1000, q; config = config_auto)
    p_auto = fem_iterate(solver_auto)
    @show infer(prob, p_auto)
 

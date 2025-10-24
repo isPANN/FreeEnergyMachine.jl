@@ -7,9 +7,6 @@ using Statistics
 using Flux
 using Zygote
 using CUDA
-using SparseArrays
-using OMEinsum
-
 include("device.jl")
 include("abstractproblem.jl")
 include("utils.jl")

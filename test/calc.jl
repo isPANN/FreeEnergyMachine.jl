@@ -3,6 +3,7 @@ using CUDA, cuDNN
 using FreeEnergyMachine
 using Random
 using Zygote
+using LinearAlgebra
 
 @testset "entropy" begin
     Random.seed!(1234)
@@ -56,11 +57,20 @@ end
 @testset "energy_bmincut" begin
     Random.seed!(1234)
     W = rand(Float32, 10, 10)
-    W_sym = (W .+ W') .* Float32(0.5)
-    W_sym = W_sym .- Diagonal(diag(W_sym))
+    W_sym = (W .+ W')
 
     p = rand(Float32, 5, 10, 2)
     problem = bMinCut(W_sym, 2, λ=0.1f0)
     E = FreeEnergyMachine.energy_term(problem, p)
     infer_E = FreeEnergyMachine.infer(problem, p)
+
+    if CUDA.functional()
+        select_device("cuda")
+        p_gpu = to_device(GPU(), p)
+        E_gpu = FreeEnergyMachine.energy_term(problem, p_gpu)
+        @test Array(E_gpu) ≈ Array(E)
+
+        infer_E_gpu = FreeEnergyMachine.infer(problem, p_gpu)
+        @test Array(infer_E_gpu) ≈ Array(infer_E)
+    end
 end
